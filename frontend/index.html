@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gestão Escolar</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+    <header>
+        <div class="container">
+            <h1>Gestão Escolar</h1>
+            <div class="search-bar">
+                <input type="text" id="searchAluno" placeholder="Buscar aluno..." aria-label="Buscar aluno">
+                <button type="button" aria-label="Buscar">🔍</button>
+            </div>
+        </div>
+    </header>
+
+    <main class="container">
+        <div class="sidebar">
+            <section class="filters">
+                <h2>Filtros</h2>
+                <div class="filter-group">
+                    <label for="turmaFilter">Turma:</label>
+                    <select id="turmaFilter" aria-label="Filtrar por turma">
+                        <option value="">Todas</option>
+                    </select>
+                </div>
+                <div class="filter-group">
+                    <label for="statusFilter">Status:</label>
+                    <select id="statusFilter" aria-label="Filtrar por status">
+                        <option value="">Todos</option>
+                        <option value="true">Ativo</option>
+                        <option value="false">Inativo</option>
+                    </select>
+                </div>
+            </section>
+
+            <section class="stats">
+                <h2>Estatísticas</h2>
+                <div class="stat-card">
+                    <h3>Total de Alunos</h3>
+                    <p id="totalAlunos">0</p>
+                </div>
+                <div class="stat-card">
+                    <h3>Alunos Ativos</h3>
+                    <p id="alunosAtivos">0</p>
+                </div>
+                <div class="stat-card">
+                    <h3>Alunos Inativos</h3>
+                    <p id="alunosInativos">0</p>
+                </div>
+            </section>
+        </div>
+
+        <div class="content">
+            <div class="actions">
+                <button id="novoAluno" class="btn primary" aria-label="Adicionar novo aluno">Novo Aluno</button>
+                <button id="exportarDados" class="btn secondary" aria-label="Exportar dados">Exportar</button>
+            </div>
+
+            <div class="table-container">
+                <table id="alunosTable" aria-label="Lista de alunos">
+                    <thead>
+                        <tr>
+                            <th>Nome</th>
+                            <th>Data Nascimento</th>
+                            <th>Email</th>
+                            <th>Status</th>
+                            <th>Turma</th>
+                            <th>Ações</th>
+                        </tr>
+                    </thead>
+                    <tbody></tbody>
+                </table>
+            </div>
+        </div>
+    </main>
+
+    <!-- Modal Novo Aluno -->
+    <div id="modalAluno" class="modal" aria-labelledby="modalTitle" aria-modal="true" role="dialog">
+        <div class="modal-content">
+            <h2 id="modalTitle">Novo Aluno</h2>
+            <form id="alunoForm">
+                <div class="form-group">
+                    <label for="nome">Nome:</label>
+                    <input type="text" id="nome" name="nome" required minlength="3" maxlength="80" aria-required="true">
+                </div>
+                <div class="form-group">
+                    <label for="dataNascimento">Data de Nascimento:</label>
+                    <input type="date" id="dataNascimento" name="dataNascimento" required aria-required="true">
+                </div>
+                <div class="form-group">
+                    <label for="email">Email:</label>
+                    <input type="email" id="email" name="email" aria-required="false">
+                </div>
+                <div class="form-group">
+                    <label for="turma">Turma:</label>
+                    <select id="turma" name="turma" aria-required="false">
+                        <option value="">Selecione uma turma</option>
+                    </select>
+                </div>
+                <div class="form-actions">
+                    <button type="submit" class="btn primary">Salvar</button>
+                    <button type="button" class="btn secondary" onclick="closeModal()">Cancelar</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Modal Matrícula -->
+    <div id="modalMatricula" class="modal" aria-labelledby="modalMatriculaTitle" aria-modal="true" role="dialog">
+        <div class="modal-content">
+            <h2 id="modalMatriculaTitle">Nova Matrícula</h2>
+            <form id="matriculaForm">
+                <div class="form-group">
+                    <label for="alunoMatricula">Aluno:</label>
+                    <select id="alunoMatricula" name="alunoMatricula" required aria-required="true">
+                        <option value="">Selecione um aluno</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="turmaMatricula">Turma:</label>
+                    <select id="turmaMatricula" name="turmaMatricula" required aria-required="true">
+                        <option value="">Selecione uma turma</option>
+                    </select>
+                </div>
+                <div class="form-actions">
+                    <button type="submit" class="btn primary">Matricular</button>
+                    <button type="button" class="btn secondary" onclick="closeMatriculaModal()">Cancelar</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script src="js/script.js"></script>
+</body>
+</html>
