@@ -51,6 +51,104 @@ document.getElementById('exportarDados').addEventListener('click', () => {
     exportData();
 });
 
+// Gerenciar turmas
+document.getElementById('gerenciarTurmas').addEventListener('click', () => {
+    openTurmaModal();
+});
+
+const turmaForm = document.getElementById('turmaForm');
+const modalTurmas = document.getElementById('modalTurmas');
+let editingTurmaId = null;
+
+function openTurmaModal() {
+    modalTurmas.style.display = 'block';
+    document.getElementById('turmaNome').focus();
+    loadTurmasList();
+}
+
+function closeTurmaModal() {
+    modalTurmas.style.display = 'none';
+    turmaForm.reset();
+    editingTurmaId = null;
+}
+
+turmaForm.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    await saveTurma();
+});
+
+async function loadTurmasList() {
+    try {
+        const response = await fetch(`${API_URL}/turmas`);
+        const turmas = await response.json();
+        const container = document.getElementById('turmasList');
+        container.innerHTML = '';
+        turmas.forEach(t => {
+            const div = document.createElement('div');
+            div.className = 'turma-item';
+            div.innerHTML = `<strong>${t.nome}</strong> (capacidade: ${t.capacidade}) <button onclick="editTurma(${t.id}, '${escapeHtml(t.nome)}', ${t.capacidade})">Editar</button>`;
+            container.appendChild(div);
+        });
+    } catch (error) {
+        console.error('loadTurmasList failed:', error);
+        showError('Erro ao carregar lista de turmas');
+    }
+}
+
+function escapeHtml(unsafe) {
+    return unsafe.replace(/'/g, "\\'").replace(/"/g, '&quot;');
+}
+
+async function saveTurma() {
+    try {
+        const nome = document.getElementById('turmaNome').value.trim();
+        const capacidade = parseInt(document.getElementById('turmaCapacidade').value, 10);
+
+        if (!nome || isNaN(capacidade) || capacidade < 1) {
+            showError('Nome e capacidade válidos são necessários');
+            return;
+        }
+
+        const payload = { nome, capacidade };
+
+        let response;
+        if (editingTurmaId) {
+            response = await fetch(`${API_URL}/turmas/${editingTurmaId}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+        } else {
+            response = await fetch(`${API_URL}/turmas`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+        }
+
+        if (!response.ok) {
+            const err = await response.json().catch(() => ({}));
+            throw new Error(err.detail || 'Erro ao salvar turma');
+        }
+
+        turmaForm.reset();
+        editingTurmaId = null;
+        loadTurmas(); // atualizar selects
+        loadTurmasList();
+        showSuccess('Turma salva com sucesso');
+    } catch (error) {
+        console.error('saveTurma failed:', error);
+        showError(error.message || 'Erro ao salvar turma');
+    }
+}
+
+function editTurma(id, nome, capacidade) {
+    editingTurmaId = id;
+    document.getElementById('turmaNome').value = nome.replace(/&quot;/g, '"');
+    document.getElementById('turmaCapacidade').value = capacidade;
+    document.getElementById('turmaNome').focus();
+}
+
 alunoForm.addEventListener('submit', async (e) => {
     e.preventDefault();
     await saveAluno();
@@ -78,6 +176,7 @@ async function loadTurmas() {
             }
         });
     } catch (error) {
+        console.error('loadTurmas failed:', error);
         showError('Erro ao carregar turmas');
     }
 }
@@ -103,6 +202,7 @@ async function loadAlunos() {
         displayAlunos(alunos);
         updateStats(alunos);
     } catch (error) {
+        console.error('loadAlunos failed:', error);
         showError('Erro ao carregar alunos');
     }
 }
@@ -135,7 +235,8 @@ async function saveAluno() {
         loadAlunos();
         showSuccess('Aluno cadastrado com sucesso!');
     } catch (error) {
-        showError(error.message);
+        console.error('saveAluno failed:', error);
+        showError(error.message || 'Erro ao salvar aluno');
     }
 }
 
@@ -164,7 +265,8 @@ async function saveMatricula() {
         loadAlunos();
         showSuccess('Matrícula realizada com sucesso!');
     } catch (error) {
-        showError(error.message);
+        console.error('saveMatricula failed:', error);
+        showError(error.message || 'Erro ao realizar matrícula');
     }
 }
 
@@ -183,7 +285,8 @@ async function deleteAluno(id) {
         loadAlunos();
         showSuccess('Aluno excluído com sucesso!');
     } catch (error) {
-        showError(error.message);
+        console.error('deleteAluno failed:', error);
+        showError(error.message || 'Erro ao excluir aluno');
     }
 }
 
@@ -205,6 +308,7 @@ async function exportData() {
         document.body.removeChild(a);
         URL.revokeObjectURL(url);
     } catch (error) {
+        console.error('exportData failed:', error);
         showError('Erro ao exportar dados');
     }
 }

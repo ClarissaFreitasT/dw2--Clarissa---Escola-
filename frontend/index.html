@@ -59,6 +59,7 @@
             <div class="actions">
                 <button id="novoAluno" class="btn primary" aria-label="Adicionar novo aluno">Novo Aluno</button>
                 <button id="exportarDados" class="btn secondary" aria-label="Exportar dados">Exportar</button>
+                <button id="gerenciarTurmas" class="btn secondary" aria-label="Gerenciar turmas">Turmas</button>
             </div>
 
             <div class="table-container">
@@ -132,6 +133,29 @@
                     <button type="button" class="btn secondary" onclick="closeMatriculaModal()">Cancelar</button>
                 </div>
             </form>
+        </div>
+    </div>
+
+    <!-- Modal Gerenciar Turmas -->
+    <div id="modalTurmas" class="modal" aria-labelledby="modalTurmasTitle" aria-modal="true" role="dialog">
+        <div class="modal-content">
+            <h2 id="modalTurmasTitle">Gerenciar Turmas</h2>
+            <form id="turmaForm">
+                <div class="form-group">
+                    <label for="turmaNome">Nome da Turma:</label>
+                    <input type="text" id="turmaNome" name="turmaNome" required minlength="1" maxlength="80">
+                </div>
+                <div class="form-group">
+                    <label for="turmaCapacidade">Capacidade:</label>
+                    <input type="number" id="turmaCapacidade" name="turmaCapacidade" required min="1">
+                </div>
+                <div class="form-actions">
+                    <button type="submit" class="btn primary">Salvar Turma</button>
+                    <button type="button" class="btn secondary" onclick="closeTurmaModal()">Cancelar</button>
+                </div>
+            </form>
+            <hr>
+            <div id="turmasList"></div>
         </div>
     </div>
 

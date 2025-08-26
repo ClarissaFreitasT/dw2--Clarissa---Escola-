@@ -35,6 +35,19 @@ def create_turma(turma: schemas.TurmaCreate, db: Session = Depends(get_db)):
     db.refresh(db_turma)
     return db_turma
 
+
+@app.put("/turmas/{turma_id}", response_model=schemas.Turma)
+def update_turma(turma_id: int, turma: schemas.TurmaCreate, db: Session = Depends(get_db)):
+    db_turma = db.query(models.Turma).filter(models.Turma.id == turma_id).first()
+    if not db_turma:
+        raise HTTPException(status_code=404, detail="Turma não encontrada")
+
+    db_turma.nome = turma.nome
+    db_turma.capacidade = turma.capacidade
+    db.commit()
+    db.refresh(db_turma)
+    return db_turma
+
 # Endpoints para Alunos
 @app.get("/alunos", response_model=List[schemas.Aluno])
 def get_alunos(
