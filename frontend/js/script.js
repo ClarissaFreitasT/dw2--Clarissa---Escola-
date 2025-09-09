@@ -79,14 +79,19 @@ turmaForm.addEventListener('submit', async (e) => {
 
 async function loadTurmasList() {
     try {
-        const response = await fetch(`${API_URL}/turmas`);
-        const turmas = await response.json();
+        const [turmasResponse, alunosResponse] = await Promise.all([
+            fetch(`${API_URL}/turmas`),
+            fetch(`${API_URL}/alunos`)
+        ]);
+        const turmas = await turmasResponse.json();
+        const alunos = await alunosResponse.json();
         const container = document.getElementById('turmasList');
         container.innerHTML = '';
         turmas.forEach(t => {
+            const ocupados = alunos.filter(a => a.turma_id === t.id).length;
             const div = document.createElement('div');
             div.className = 'turma-item';
-            div.innerHTML = `<strong>${t.nome}</strong> (capacidade: ${t.capacidade}) <button onclick="editTurma(${t.id}, '${escapeHtml(t.nome)}', ${t.capacidade})">Editar</button>`;
+            div.innerHTML = `<strong>${t.nome}</strong> (${ocupados}/${t.capacidade} alunos) <button onclick="editTurma(${t.id}, '${escapeHtml(t.nome)}', ${t.capacidade})">Editar</button>`;
             container.appendChild(div);
         });
     } catch (error) {
@@ -162,16 +167,21 @@ matriculaForm.addEventListener('submit', async (e) => {
 // Funções de API
 async function loadTurmas() {
     try {
-        const response = await fetch(`${API_URL}/turmas`);
-        const turmas = await response.json();
-        
+        const [turmasResponse, alunosResponse] = await Promise.all([
+            fetch(`${API_URL}/turmas`),
+            fetch(`${API_URL}/alunos`)
+        ]);
+        const turmas = await turmasResponse.json();
+        const alunos = await alunosResponse.json();
         // Preencher selects de turma
         const turmaSelects = [turmaFilter, document.getElementById('turma'), document.getElementById('turmaMatricula')];
         turmaSelects.forEach(select => {
             if (select) {
                 select.innerHTML = '<option value="">Selecione uma turma</option>';
                 turmas.forEach(turma => {
-                    select.innerHTML += `<option value="${turma.id}">${turma.nome}</option>`;
+                    const ocupados = alunos.filter(a => a.turma_id === turma.id).length;
+                    const disabled = ocupados >= turma.capacidade ? 'disabled' : '';
+                    select.innerHTML += `<option value="${turma.id}" ${disabled}>${turma.nome} (${ocupados}/${turma.capacidade})</option>`;
                 });
             }
         });
@@ -188,9 +198,15 @@ async function loadAlunos() {
         if (currentFilters.turma) url += `turma_id=${currentFilters.turma}&`;
         if (currentFilters.status) url += `status=${currentFilters.status}`;
 
-        const response = await fetch(url);
-        const alunos = await response.json();
-        
+        const [alunosResponse, turmasResponse] = await Promise.all([
+            fetch(url),
+            fetch(`${API_URL}/turmas`)
+        ]);
+        const alunos = await alunosResponse.json();
+        const turmas = await turmasResponse.json();
+        const turmaMap = {};
+        turmas.forEach(t => turmaMap[t.id] = t.nome);
+
         // Aplicar ordenação
         alunos.sort((a, b) => {
             const aValue = a[sortPreference.field];
@@ -199,13 +215,15 @@ async function loadAlunos() {
             return aValue > bValue ? direction : -direction;
         });
 
-        displayAlunos(alunos);
+        displayAlunos(alunos, turmaMap);
         updateStats(alunos);
     } catch (error) {
         console.error('loadAlunos failed:', error);
         showError('Erro ao carregar alunos');
     }
 }
+
+let editingAlunoId = null;
 
 async function saveAluno() {
     try {
@@ -215,16 +233,27 @@ async function saveAluno() {
             data_nascimento: formData.get('dataNascimento'),
             email: formData.get('email') || null,
             turma_id: formData.get('turma') || null,
-            status: true
+            status: formData.get('statusAluno') === 'true'
         };
 
-        const response = await fetch(`${API_URL}/alunos`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify(data)
-        });
+        let response;
+        if (editingAlunoId) {
+            response = await fetch(`${API_URL}/alunos/${editingAlunoId}`, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(data)
+            });
+        } else {
+            response = await fetch(`${API_URL}/alunos`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(data)
+            });
+        }
 
         if (!response.ok) {
             const error = await response.json();
@@ -233,10 +262,34 @@ async function saveAluno() {
 
         closeModal();
         loadAlunos();
-        showSuccess('Aluno cadastrado com sucesso!');
+        showSuccess(editingAlunoId ? 'Aluno atualizado com sucesso!' : 'Aluno cadastrado com sucesso!');
+        editingAlunoId = null;
     } catch (error) {
         console.error('saveAluno failed:', error);
         showError(error.message || 'Erro ao salvar aluno');
+    }
+}
+
+// Função para editar aluno
+window.editAluno = async function(id) {
+    try {
+        const response = await fetch(`${API_URL}/alunos`);
+        const alunos = await response.json();
+        const aluno = alunos.find(a => a.id === id);
+        if (!aluno) {
+            showError('Aluno não encontrado');
+            return;
+        }
+        editingAlunoId = id;
+        modalAluno.style.display = 'block';
+        document.getElementById('nome').value = aluno.nome;
+        document.getElementById('dataNascimento').value = aluno.data_nascimento;
+        document.getElementById('email').value = aluno.email || '';
+        document.getElementById('turma').value = aluno.turma_id || '';
+        document.getElementById('statusAluno').value = aluno.status ? 'true' : 'false';
+        document.getElementById('nome').focus();
+    } catch (error) {
+        showError('Erro ao carregar dados do aluno para edição');
     }
 }
 
@@ -314,18 +367,19 @@ async function exportData() {
 }
 
 // Funções de UI
-function displayAlunos(alunos) {
+function displayAlunos(alunos, turmaMap = {}) {
     const tbody = document.querySelector('#alunosTable tbody');
     tbody.innerHTML = '';
 
     alunos.forEach(aluno => {
         const tr = document.createElement('tr');
+        const turmaNome = aluno.turma_id ? (turmaMap[aluno.turma_id] || '-') : '-';
         tr.innerHTML = `
             <td>${aluno.nome}</td>
             <td>${new Date(aluno.data_nascimento).toLocaleDateString()}</td>
             <td>${aluno.email || '-'}</td>
             <td>${aluno.status ? 'Ativo' : 'Inativo'}</td>
-            <td>${aluno.turma_id || '-'}</td>
+            <td>${turmaNome}</td>
             <td>
                 <button onclick="editAluno(${aluno.id})" class="btn secondary" aria-label="Editar ${aluno.nome}">✏️</button>
                 <button onclick="deleteAluno(${aluno.id})" class="btn secondary" aria-label="Excluir ${aluno.nome}">🗑️</button>
@@ -362,6 +416,7 @@ function openModal() {
 function closeModal() {
     modalAluno.style.display = 'none';
     alunoForm.reset();
+    editingAlunoId = null;
 }
 
 function openMatriculaModal() {
