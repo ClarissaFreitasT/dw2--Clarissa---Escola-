@@ -1,0 +1,2 @@
+# Não ignore o banco de dados para garantir persistência no repositório
+# (Remova ou comente qualquer linha que ignore escola.db)
