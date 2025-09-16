@@ -173,9 +173,18 @@ async function loadTurmas() {
         ]);
         const turmas = await turmasResponse.json();
         const alunos = await alunosResponse.json();
-        // Preencher selects de turma
-        const turmaSelects = [turmaFilter, document.getElementById('turma'), document.getElementById('turmaMatricula')];
-        turmaSelects.forEach(select => {
+        // Preencher o select de filtro (permite ver turmas mesmo quando estiverem cheias)
+        if (turmaFilter) {
+            turmaFilter.innerHTML = '<option value="">Selecione uma turma</option>';
+            turmas.forEach(turma => {
+                const ocupados = alunos.filter(a => a.turma_id === turma.id).length;
+                turmaFilter.innerHTML += `<option value="${turma.id}">${turma.nome} (${ocupados}/${turma.capacidade})</option>`;
+            });
+        }
+
+        // Preencher selects de formulário (mantém turmas lotadas como disabled para seleção)
+        const formSelects = [document.getElementById('turma'), document.getElementById('turmaMatricula')];
+        formSelects.forEach(select => {
             if (select) {
                 select.innerHTML = '<option value="">Selecione uma turma</option>';
                 turmas.forEach(turma => {
